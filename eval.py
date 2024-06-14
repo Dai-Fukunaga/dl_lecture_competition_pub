@@ -19,13 +19,16 @@ from src.utils import set_seed
 def run(args: DictConfig):
     set_seed(args.seed)
     savedir = os.path.dirname(args.model_path)
-    
+
     # ------------------
     #    Dataloader
-    # ------------------    
+    # ------------------
     test_set = ThingsMEGDataset("test", args.data_dir)
     test_loader = torch.utils.data.DataLoader(
-        test_set, shuffle=False, batch_size=args.batch_size, num_workers=args.num_workers
+        test_set,
+        shuffle=False,
+        batch_size=args.batch_size,
+        num_workers=args.num_workers,
     )
 
     # ------------------
@@ -38,12 +41,12 @@ def run(args: DictConfig):
 
     # ------------------
     #  Start evaluation
-    # ------------------ 
-    preds = [] 
+    # ------------------
+    preds = []
     model.eval()
-    for X, subject_idxs in tqdm(test_loader, desc="Validation"):        
+    for X, subject_idxs in tqdm(test_loader, desc="Validation"):
         preds.append(model(X.to(args.device)).detach().cpu())
-        
+
     preds = torch.cat(preds, dim=0).numpy()
     np.save(os.path.join(savedir, "submission"), preds)
     cprint(f"Submission {preds.shape} saved at {savedir}", "cyan")
