@@ -10,7 +10,10 @@ from termcolor import cprint
 from tqdm import tqdm
 
 from src.datasets import ThingsMEGDataset
-from src.models import BasicConvClassifier
+from src.densenet import DenseNetClassifier
+from src.resnet2d import resnet50_2d
+from src.resnet1d import resnet50_1d
+
 from src.utils import set_seed
 
 
@@ -42,8 +45,12 @@ def run(args: DictConfig):
     # ------------------
     #       Model
     # ------------------
-    model = BasicConvClassifier(
-        train_set.num_classes, train_set.seq_len, train_set.num_channels
+    # model = DenseNetClassifier(
+    #     train_set.num_classes, train_set.seq_len, train_set.num_channels
+    # ).to(args.device)
+
+    model = resnet50_1d(
+        num_classes=train_set.num_classes, in_channels=train_set.num_channels
     ).to(args.device)
 
     # ------------------

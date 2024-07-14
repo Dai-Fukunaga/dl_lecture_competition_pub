@@ -11,6 +11,7 @@ from tqdm import tqdm
 
 from src.datasets import ThingsMEGDataset
 from src.models import BasicConvClassifier
+from src.models import resnet50_1d
 from src.utils import set_seed
 
 
@@ -34,8 +35,11 @@ def run(args: DictConfig):
     # ------------------
     #       Model
     # ------------------
-    model = BasicConvClassifier(
-        test_set.num_classes, test_set.seq_len, test_set.num_channels
+    # model = BasicConvClassifier(
+    #     test_set.num_classes, test_set.seq_len, test_set.num_channels
+    # ).to(args.device)
+    model = resnet50_1d(
+        num_classes=test_set.num_classes, in_channels=test_set.num_channels
     ).to(args.device)
     model.load_state_dict(torch.load(args.model_path, map_location=args.device))
 
