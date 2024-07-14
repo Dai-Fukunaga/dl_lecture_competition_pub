@@ -14,11 +14,15 @@ class ThingsMEGDataset(torch.utils.data.Dataset):
         self.num_classes = 1854
 
         self.X = torch.load(os.path.join(data_dir, f"{split}_X.pt"))
-        self.subject_idxs = torch.load(os.path.join(data_dir, f"{split}_subject_idxs.pt"))
+        self.subject_idxs = torch.load(
+            os.path.join(data_dir, f"{split}_subject_idxs.pt")
+        )
 
         if split in ["train", "val"]:
             self.y = torch.load(os.path.join(data_dir, f"{split}_y.pt"))
-            assert len(torch.unique(self.y)) == self.num_classes, "Number of classes do not match."
+            assert (
+                len(torch.unique(self.y)) == self.num_classes
+            ), "Number of classes do not match."
 
     def __len__(self) -> int:
         return len(self.X)
