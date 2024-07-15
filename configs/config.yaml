@@ -7,7 +7,7 @@ num_workers: 4
 seed: 1234
 use_wandb: False
 
-data_dir: data
+data_dir: /mnt/mp_nas_mks/labmember/d.fukunaga/data
 
 # Evaluation
 model_path: outputs/2024-07-14/21-54-04/model_best.pt

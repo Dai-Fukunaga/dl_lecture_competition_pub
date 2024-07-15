@@ -92,11 +92,21 @@ class Bottleneck(nn.Module):
 
 
 class ResNet1D(nn.Module):
-    def __init__(self, block, layers, num_classes=10, in_channels=1):
+    def __init__(self, block, layers, num_classes=10, in_channels=1, num_subjects=1):
         super(ResNet1D, self).__init__()
         self.in_channels = 64
+        self.num_subjects = num_subjects
+
+        # Embedding layer for subject information
+        self.subject_embedding = nn.Embedding(num_subjects, in_channels)
+
         self.conv1 = nn.Conv1d(
-            in_channels, 64, kernel_size=7, stride=2, padding=3, bias=False
+            in_channels + in_channels,
+            64,
+            kernel_size=7,
+            stride=2,
+            padding=3,
+            bias=False,
         )
         self.bn1 = nn.BatchNorm1d(64)
         self.relu = nn.ReLU(inplace=True)
@@ -118,7 +128,15 @@ class ResNet1D(nn.Module):
             layers.append(block(self.in_channels, out_channels))
         return nn.Sequential(*layers)
 
-    def forward(self, x):
+    def forward(self, x, subject_idx):  # subject_idxを追加
+        subject_emb = (
+            self.subject_embedding(subject_idx).unsqueeze(-1).expand(-1, -1, x.size(-1))
+        )
+        x = torch.cat([x, subject_emb], dim=1)
+
+        # デバッグ情報の出力
+        # print(f"After concat: {x.shape}")
+
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.relu(x)
@@ -136,7 +154,11 @@ class ResNet1D(nn.Module):
         return x
 
 
-def resnet50_1d(num_classes=10, in_channels=1):
+def resnet50_1d(num_classes=10, in_channels=1, num_subjects=10):
     return ResNet1D(
-        Bottleneck, [3, 4, 6, 3], num_classes=num_classes, in_channels=in_channels
+        Bottleneck,
+        [3, 4, 6, 3],
+        num_classes=num_classes,
+        in_channels=in_channels,
+        num_subjects=num_subjects,
     )

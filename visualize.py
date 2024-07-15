@@ -22,11 +22,11 @@ def show_images(images, labels=None, title=None):
             axes[idx].set_title(f"Label: {labels[idx].item()}")
     if title:
         fig.suptitle(title)
-    plt.show()
+    plt.savefig("sample.png")
 
 
 def main():
-    data_dir = "data"  # データディレクトリを指定
+    data_dir = "/mnt/mp_nas_mks/labmember/d.fukunaga/data"  # データディレクトリを指定
     batch_size = 4  # 表示するバッチサイズ
 
     # データセットのインスタンスを作成

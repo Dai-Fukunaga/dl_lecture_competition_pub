@@ -14,6 +14,9 @@ from src.densenet import DenseNetClassifier
 from src.resnet2d import resnet50_2d
 from src.resnet1d import resnet50_1d
 
+import torch.optim.lr_scheduler as lr_scheduler
+import torchvision.transforms as transforms
+
 from src.utils import set_seed
 
 
@@ -30,11 +33,36 @@ def run(args: DictConfig):
     # ------------------
     loader_args = {"batch_size": args.batch_size, "num_workers": args.num_workers}
 
-    train_set = ThingsMEGDataset("train", args.data_dir)
+    train_transforms = transforms.Compose(
+        [
+            transforms.Resize((224, 224)),  # 画像を224x224にリサイズ
+            # transforms.RandomHorizontalFlip(p=0.5),  # ランダムに水平反転
+            # transforms.RandomRotation(degrees=15),  # ランダムに±15度回転
+            transforms.ColorJitter(
+                brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1
+            ),  # カラージッター
+            transforms.ToTensor(),  # テンソルに変換
+            transforms.Normalize(
+                mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+            ),  # 標準化
+        ]
+    )
+
+    val_test_transforms = transforms.Compose(
+        [
+            transforms.Resize((224, 224)),  # 画像を224x224にリサイズ
+            transforms.ToTensor(),  # テンソルに変換
+            transforms.Normalize(
+                mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+            ),  # 標準化
+        ]
+    )
+
+    train_set = ThingsMEGDataset("train", args.data_dir, transforms=train_transforms)
     train_loader = torch.utils.data.DataLoader(train_set, shuffle=True, **loader_args)
-    val_set = ThingsMEGDataset("val", args.data_dir)
+    val_set = ThingsMEGDataset("val", args.data_dir, transforms=val_test_transforms)
     val_loader = torch.utils.data.DataLoader(val_set, shuffle=False, **loader_args)
-    test_set = ThingsMEGDataset("test", args.data_dir)
+    test_set = ThingsMEGDataset("test", args.data_dir, transforms=val_test_transforms)
     test_loader = torch.utils.data.DataLoader(
         test_set,
         shuffle=False,
@@ -57,6 +85,8 @@ def run(args: DictConfig):
     #     Optimizer
     # ------------------
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+
+    scheduler = lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
 
     # ------------------
     #   Start training
@@ -96,6 +126,8 @@ def run(args: DictConfig):
 
             val_loss.append(F.cross_entropy(y_pred, y).item())
             val_acc.append(accuracy(y_pred, y).item())
+
+        scheduler.step()
 
         print(
             f"Epoch {epoch+1}/{args.epochs} | train loss: {np.mean(train_loss):.3f} | train acc: {np.mean(train_acc):.3f} | val loss: {np.mean(val_loss):.3f} | val acc: {np.mean(val_acc):.3f}"
