@@ -19,6 +19,20 @@ import torchvision.transforms as transforms
 
 from src.utils import set_seed
 
+class Normalize:
+    def __init__(self, mean, std):
+        self.mean = mean
+        self.std = std
+
+    def __call__(self, data):
+        return (data - self.mean) / self.std
+
+def calculate_mean_std(dataset):
+    all_data = torch.cat([dataset[i][0] for i in range(len(dataset))], dim=1)
+    mean = all_data.mean()
+    std = all_data.std()
+    return mean, std
+
 
 @hydra.main(version_base=None, config_path="configs", config_name="config")
 def run(args: DictConfig):
@@ -32,32 +46,14 @@ def run(args: DictConfig):
     #    Dataloader
     # ------------------
     loader_args = {"batch_size": args.batch_size, "num_workers": args.num_workers}
-
+    # train_set = ThingsMEGDataset("train", args.data_dir, transforms=None)
+    # mean, std = calculate_mean_std(train_set)
     train_transforms = transforms.Compose(
         [
-            transforms.Resize((224, 224)),  # 画像を224x224にリサイズ
-            # transforms.RandomHorizontalFlip(p=0.5),  # ランダムに水平反転
-            # transforms.RandomRotation(degrees=15),  # ランダムに±15度回転
-            transforms.ColorJitter(
-                brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1
-            ),  # カラージッター
-            transforms.ToTensor(),  # テンソルに変換
-            transforms.Normalize(
-                mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
-            ),  # 標準化
+            # Normalize(mean, std),
         ]
     )
-
-    val_test_transforms = transforms.Compose(
-        [
-            transforms.Resize((224, 224)),  # 画像を224x224にリサイズ
-            transforms.ToTensor(),  # テンソルに変換
-            transforms.Normalize(
-                mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
-            ),  # 標準化
-        ]
-    )
-
+    val_test_transforms = train_transforms
     train_set = ThingsMEGDataset("train", args.data_dir, transforms=train_transforms)
     train_loader = torch.utils.data.DataLoader(train_set, shuffle=True, **loader_args)
     val_set = ThingsMEGDataset("val", args.data_dir, transforms=val_test_transforms)
@@ -70,21 +66,14 @@ def run(args: DictConfig):
         num_workers=args.num_workers,
     )
 
-    # ------------------
-    #       Model
-    # ------------------
-    # model = DenseNetClassifier(
-    #     train_set.num_classes, train_set.seq_len, train_set.num_channels
-    # ).to(args.device)
-
     model = resnet50_1d(
-        num_classes=train_set.num_classes, in_channels=train_set.num_channels
+        num_classes=train_set.num_classes, in_channels=train_set.num_channels, dropout_rate=args.dropout_rate,
     ).to(args.device)
 
     # ------------------
     #     Optimizer
     # ------------------
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr)
 
     scheduler = lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
 
